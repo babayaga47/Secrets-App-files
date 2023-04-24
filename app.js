@@ -3,8 +3,10 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const saltRounds = 10;
+const session = require('express-session');
+const passport = require("passport");
+const passportLocalMongoose = require("passport-local-mongoose");
+
 
 const app = express();
 
@@ -15,6 +17,15 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
+app.use(session({
+    secret: "Our little secret.",
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 mongoose.connect("mongodb://127.0.0.1:27017/userDB");
 
 const userSchema = new mongoose.Schema({
@@ -22,12 +33,14 @@ const userSchema = new mongoose.Schema({
     password: String
 });
 
-
-
-
-
+userSchema.plugin(passportLocalMongoose);
 
 const User = new mongoose.model("User", userSchema);
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 
 app.get("/", function (req, res) {
@@ -51,22 +64,7 @@ app.get("/register", function (req, res) {
 
 app.post("/register", function (req, res) {
 
-    bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
 
-        const newUser = new User({
-            email: req.body.username,
-            password: hash
-        });
-
-        newUser.save().finally(() => {
-            console.log("Succesfully registered new user.");
-        }).catch((err) => {
-            console.log(err);
-        }).then(() => {
-            res.render("secrets");
-        });
-
-    });
 
 
 
@@ -77,32 +75,7 @@ app.post("/register", function (req, res) {
 
 app.post("/login", function (req, res) {
 
-    const username = req.body.username;
-    const password = req.body.password;
 
-    User.findOne({
-        email: username
-    }).finally(() => {
-        console.log("Successfully fetched User details.");
-    }).then((foundUser) => {
-
-        bcrypt.compare(password, foundUser.password, function (err, result) {
-            // result == true
-            if (result === true) {
-                res.render("secrets");
-            } else {
-                res.redirect("/login");
-            };
-        });
-
-
-
-
-
-    }).catch((err) => {
-        console.log(err);
-        res.send("User not Found");
-    });
 
 });
 
