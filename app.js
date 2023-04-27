@@ -62,12 +62,50 @@ app.get("/register", function (req, res) {
 
 
 
+app.get("/secrets", function (req, res) {
+    console.log(req);
+    if (req.isAuthenticated()) {
+        res.render("secrets");
+    } else {
+        res.redirect("/");
+    }
+
+
+});
+
+
+app.get('/logout', function(req, res, next) {
+  req.logout(function(err) {
+    if (err) { return next(err); }
+    res.redirect('/');
+  });
+});
+
+
+
 app.post("/register", function (req, res) {
 
+    User.register({
+        email: req.body.username
+    }, req.body.password, function (err, user) {
+
+        if (err) {
+            console.log(err);
+            res.redirect("/register");
+        } else {
+
+            passport.authenticate("local")(req, res, function () {
+                res.redirect("/secrets");
+            });
+
+
+        };
 
 
 
 
+
+    });
 
 });
 
@@ -75,9 +113,30 @@ app.post("/register", function (req, res) {
 
 app.post("/login", function (req, res) {
 
+    const user = new User({
+        username: req.body.username,
+        password: req.body.password
+    });
+
+    req.login(user, function (err) {
+        if (err) {
+            console.log(err);
+        } else {
+            passport.authenticate("local")(req, res, function () {
+                res.redirect("/secrets");
+
+            
+
+            });
+        }
+
+
+    });
 
 
 });
+
+
 
 
 
